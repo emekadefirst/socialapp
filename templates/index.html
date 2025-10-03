@@ -14,7 +14,8 @@
     <div class="max-w-md w-full mx-auto mb-4">
         <div class="bg-white rounded-lg shadow-lg p-4 flex items-center justify-between">
             <h1 class="text-xl font-bold">Feed</h1>
-            <a href="create/" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center space-x-2">
+            <a href="create/"
+                class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center space-x-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -79,10 +80,17 @@
 
             <!-- Add Comment -->
             <div class="px-4 pb-4 pt-2 border-t">
-                <div class="flex items-center space-x-2">
-                    <input type="text" placeholder="Add a comment..." class="flex-1 text-sm outline-none">
-                    <button class="text-blue-500 font-semibold text-sm">Post</button>
-                </div>
+                <form method="POST" action="{% url 'add_comment' post.id %}" class="w-full">
+                    {% csrf_token %}
+                    <div class="flex items-center space-x-2 w-full">
+                        <input type="text" name="text" placeholder="Add a comment..." 
+                               class="flex-1 text-sm outline-none border-b border-transparent focus:border-gray-300 pb-1 transition" 
+                               required>
+                        <button type="submit" class="text-blue-500 hover:text-blue-600 font-semibold text-sm transition">
+                            Post
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
         {% endfor %}
@@ -97,26 +105,61 @@
             let isLiked = false;
 
             button.addEventListener('click', function () {
-                if (isLiked) {
-                    likes--;
-                    button.innerHTML = `
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        <span id="likeCount-${postId}" class="font-semibold text-sm">${likes.toLocaleString()}</span>
-                    `;
-                } else {
-                    likes++;
-                    button.innerHTML = `
-                        <svg class="w-7 h-7 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        <span id="likeCount-${postId}" class="font-semibold text-sm">${likes.toLocaleString()}</span>
-                    `;
-                }
-                isLiked = !isLiked;
+                // Send AJAX request to like/unlike the post
+                fetch(`/post/${postId}/like/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'action': isLiked ? 'unlike' : 'like'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        likes = data.like_count;
+                        isLiked = data.is_liked;
+                        
+                        if (isLiked) {
+                            button.innerHTML = `
+                                <svg class="w-7 h-7 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                                <span id="likeCount-${postId}" class="font-semibold text-sm">${likes}</span>
+                            `;
+                        } else {
+                            button.innerHTML = `
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                                <span id="likeCount-${postId}" class="font-semibold text-sm">${likes}</span>
+                            `;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             });
         });
+
+        // Helper function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     </script>
 </body>
 

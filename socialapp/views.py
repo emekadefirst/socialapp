@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Post
+from .models import Post, Comment
 
 def index(request):
     posts = Post.objects.all().order_by('-created_at')
@@ -16,3 +16,13 @@ def create_post(request):
             return redirect("index")
         return render(request, 'create.html', {'error': 'Caption and image are required.'})
     return render(request, 'create.html')
+
+def add_comment(request, post_id):
+    if request.method == 'POST':
+        text = request.POST.get('text')
+        if text:
+            post = Post.objects.get(id=post_id)
+            comment = Comment.objects.create(post=post, text=text)
+            return redirect("index")
+        return render(request, 'index.html', {'error': 'comment text is required.'})
+    return render(request, 'index.html')
