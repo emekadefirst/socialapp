@@ -7,7 +7,7 @@ git clone https://github.com/emekadefirst/socialapp.git
 ## Change directory to the clone project
 
 ```
-cd blog
+cd socialapp
 
 ```
 
